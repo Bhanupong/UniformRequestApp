@@ -1,0 +1,40 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Kanit', sans-serif;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+  background-color: #F2F2F7;
+}
+
+#root {
+  width: 100%;
+}
+
+/* Custom Styles from original App.jsx */
+.glass-header {
+  background: rgba(242, 242, 247, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.pb-safe {
+  padding-bottom: 120px;
+}
+
+/* Use Tailwind for safe area padding if needed, or keep these custom classes */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
