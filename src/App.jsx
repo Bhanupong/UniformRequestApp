@@ -35,6 +35,8 @@ export default function App() {
 
     // UI State
     const [isReviewing, setIsReviewing] = useState(false);
+    const [isSubmitted, setIsSubmitted] = useState(false);
+    const [errors, setErrors] = useState({}); // { fieldKey: true }
     const [selectedBranch, setSelectedBranch] = useState("");
     const [branchSearch, setBranchSearch] = useState("");
     const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState(false);
@@ -140,12 +142,64 @@ export default function App() {
         }
     };
 
+    const resetForm = () => {
+        setIsSubmitted(false);
+        setIsReviewing(false);
+        setErrors({});
+        setSelectedBranch("");
+        setBranchSearch("");
+        setRequesterCount(1);
+        setRequesters([{
+            id: Date.now(),
+            type: "1", title: "", firstName: "", lastName: "",
+            area: "1", position: "3", shirtSize: "", image: null, imageName: ""
+        }]);
+        window.scrollTo(0, 0);
+    };
+
     // --- Submission Handlers ---
     const handleReview = (e) => {
         e.preventDefault();
-        if (!selectedBranch) { alert("กรุณาเลือกสาขา"); return; }
+        const newErrors = {};
+
+        // 1. Validate Branch
+        if (!selectedBranch) {
+            newErrors.branch = true;
+        }
+
+        // 2. Validate Requesters
+        requesters.forEach((req, i) => {
+            if (!req.firstName.trim()) newErrors[`firstName_${i}`] = true;
+            if (!req.lastName.trim()) newErrors[`lastName_${i}`] = true;
+
+            if ((req.type === "1" || req.type === "3") && !req.shirtSize) {
+                newErrors[`shirtSize_${i}`] = true;
+            }
+
+            if ((req.type === "2" || req.type === "3") && !req.image) {
+                newErrors[`image_${i}`] = true;
+            }
+        });
+
+        if (Object.keys(newErrors).length > 0) {
+            setErrors(newErrors);
+            alert("กรุณากรอกข้อมูลในช่องที่ทำเครื่องหมายสีแดงให้ครบถ้วน");
+            return;
+        }
+
+        setErrors({});
         setIsReviewing(true);
         window.scrollTo(0, 0);
+    };
+
+    const clearError = (fieldKey) => {
+        if (errors[fieldKey]) {
+            setErrors(prev => {
+                const next = { ...prev };
+                delete next[fieldKey];
+                return next;
+            });
+        }
     };
 
     const handleConfirmSubmit = async () => {
@@ -153,8 +207,7 @@ export default function App() {
             setLoading(true);
             setTimeout(() => {
                 setLoading(false);
-                alert(`(Demo Mode) บันทึกสำเร็จ!\nสาขา: ${selectedBranch}\nจำนวน: ${requesterCount} คน`);
-                setIsReviewing(false);
+                setIsSubmitted(true);
             }, 1500);
             return;
         }
@@ -168,13 +221,52 @@ export default function App() {
                 body: JSON.stringify({ branch: selectedBranch, requesters: requesters })
             });
             setLoading(false);
-            alert("ส่งข้อมูลเรียบร้อย!");
+            setIsSubmitted(true);
         } catch (error) {
             console.error(error);
             setLoading(false);
             alert("เกิดข้อผิดพลาดในการส่งข้อมูล");
         }
     };
+
+    if (isSubmitted) {
+        return (
+            <div className="min-h-screen bg-[#F2F2F7] flex flex-col items-center justify-center p-6 text-center font-kanit">
+                <div className="bg-white p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.05)] max-w-sm w-full space-y-8 animate-in zoom-in-95 duration-500">
+                    <div className="relative mx-auto w-24 h-24">
+                        <div className="absolute inset-0 bg-green-100 rounded-full animate-ping opacity-20"></div>
+                        <div className="relative w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg shadow-green-200">
+                            <CheckCircle size={48} className="text-white" />
+                        </div>
+                    </div>
+
+                    <div className="space-y-3">
+                        <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">ส่งข้อมูลสำเร็จ!</h2>
+                        <div className="space-y-1">
+                            <p className="text-slate-500 font-medium">คำขอของคุณถูกบันทึกเรียบร้อย</p>
+                            <div className="flex items-center justify-center gap-2 text-slate-400 text-sm">
+                                <Building2 size={14} />
+                                <span>{selectedBranch}</span>
+                                <span className="mx-1">•</span>
+                                <Users size={14} />
+                                <span>{requesterCount} รายการ</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="pt-4">
+                        <button
+                            onClick={resetForm}
+                            className="w-full py-4 bg-[#3e87c6] text-white rounded-2xl font-bold text-lg shadow-xl shadow-[#3e87c6]/30 hover:bg-[#357abd] active:scale-[0.97] transition-all flex items-center justify-center gap-3 group"
+                        >
+                            <span>ทำรายการใหม่</span>
+                            <Plus size={20} className="group-hover:rotate-90 transition-transform" />
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#F2F2F7] pb-safe font-kanit text-slate-900 selection:bg-[#3e87c6] selection:text-white">
@@ -204,20 +296,23 @@ export default function App() {
                         <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 space-y-4">
                             <div>
                                 <div className="flex justify-between items-center mb-1.5">
-                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">สาขาที่สังกัด</label>
+                                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
+                                        สาขาที่สังกัด <span className="text-red-500">*</span>
+                                    </label>
                                     {configLoading && <span className="text-[10px] text-[#3e87c6] flex items-center"><Loader2 size={10} className="animate-spin mr-1" /> Loading...</span>}
                                 </div>
                                 <div className="relative">
-                                    <MapPin size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <MapPin size={16} className={`absolute left-3 top-1/2 -translate-y-1/2 ${errors.branch ? 'text-red-400' : 'text-slate-400'}`} />
                                     <input
                                         type="text"
-                                        className="w-full pl-9 pr-9 py-2.5 bg-slate-50 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-1 focus:ring-[#3e87c6] outline-none text-sm font-medium transition-all"
+                                        className={`w-full pl-9 pr-9 py-2.5 bg-slate-50 rounded-lg text-slate-900 placeholder:text-slate-400 focus:bg-white focus:ring-1 outline-none text-sm font-medium transition-all ${errors.branch ? 'ring-2 ring-red-500 bg-red-50' : 'focus:ring-[#3e87c6]'}`}
                                         placeholder={configLoading ? "กำลังโหลด..." : "ค้นหา (เช่น 5005)"}
                                         value={branchSearch}
                                         onChange={(e) => {
                                             setBranchSearch(e.target.value);
                                             setIsBranchDropdownOpen(true);
                                             setSelectedBranch("");
+                                            if (errors.branch) clearError('branch');
                                         }}
                                         onFocus={() => setIsBranchDropdownOpen(true)}
                                     />
@@ -303,10 +398,28 @@ export default function App() {
                                                 <input type="text" className="w-full px-2.5 py-2.5 bg-slate-50 rounded-lg text-slate-900 text-sm focus:bg-white focus:ring-1 focus:ring-[#3e87c6] outline-none transition-all" placeholder="คำนำหน้า" value={req.title} onChange={(e) => updateRequester(index, "title", e.target.value)} />
                                             </div>
                                             <div className="col-span-4">
-                                                <input type="text" className="w-full px-2.5 py-2.5 bg-slate-50 rounded-lg text-slate-900 text-sm focus:bg-white focus:ring-1 focus:ring-[#3e87c6] outline-none transition-all" placeholder="ชื่อ" value={req.firstName} onChange={(e) => updateRequester(index, "firstName", e.target.value)} />
+                                                <input
+                                                    type="text"
+                                                    className={`w-full px-2.5 py-2.5 bg-slate-50 rounded-lg text-slate-900 text-sm focus:bg-white focus:ring-1 outline-none transition-all ${errors[`firstName_${index}`] ? 'ring-2 ring-red-500 bg-red-50' : 'focus:ring-[#3e87c6]'}`}
+                                                    placeholder="ชื่อ *"
+                                                    value={req.firstName}
+                                                    onChange={(e) => {
+                                                        updateRequester(index, "firstName", e.target.value);
+                                                        clearError(`firstName_${index}`);
+                                                    }}
+                                                />
                                             </div>
                                             <div className="col-span-5">
-                                                <input type="text" className="w-full px-2.5 py-2.5 bg-slate-50 rounded-lg text-slate-900 text-sm focus:bg-white focus:ring-1 focus:ring-[#3e87c6] outline-none transition-all" placeholder="นามสกุล" value={req.lastName} onChange={(e) => updateRequester(index, "lastName", e.target.value)} />
+                                                <input
+                                                    type="text"
+                                                    className={`w-full px-2.5 py-2.5 bg-slate-50 rounded-lg text-slate-900 text-sm focus:bg-white focus:ring-1 outline-none transition-all ${errors[`lastName_${index}`] ? 'ring-2 ring-red-500 bg-red-50' : 'focus:ring-[#3e87c6]'}`}
+                                                    placeholder="นามสกุล *"
+                                                    value={req.lastName}
+                                                    onChange={(e) => {
+                                                        updateRequester(index, "lastName", e.target.value);
+                                                        clearError(`lastName_${index}`);
+                                                    }}
+                                                />
                                             </div>
                                         </div>
 
@@ -333,22 +446,37 @@ export default function App() {
                                         <div className="flex gap-2">
                                             {showShirt && (
                                                 <div className={`relative ${showCard ? 'w-1/2' : 'w-full'}`}>
-                                                    <select className={`w-full px-2.5 py-2.5 bg-white border border-slate-200 rounded-lg text-slate-900 text-sm outline-none appearance-none focus:border-[#3e87c6] focus:ring-1 focus:ring-[#3e87c6] transition-all ${!req.shirtSize ? 'text-slate-400' : ''}`} value={req.shirtSize} onChange={(e) => updateRequester(index, "shirtSize", e.target.value)}>
-                                                        <option value="">เลือกไซส์</option>
+                                                    <select
+                                                        className={`w-full px-2.5 py-2.5 bg-white border rounded-lg text-slate-900 text-sm outline-none appearance-none focus:ring-1 transition-all ${!req.shirtSize ? 'text-slate-400' : ''} ${errors[`shirtSize_${index}`] ? 'border-red-500 ring-1 ring-red-500 bg-red-50' : 'border-slate-200 focus:border-[#3e87c6] focus:ring-[#3e87c6]'}`}
+                                                        value={req.shirtSize}
+                                                        onChange={(e) => {
+                                                            updateRequester(index, "shirtSize", e.target.value);
+                                                            clearError(`shirtSize_${index}`);
+                                                        }}
+                                                    >
+                                                        <option value="">เลือกไซส์ *</option>
                                                         {shirtOptions.map((opt, i) => (
                                                             <option key={i} value={opt.size} disabled={!opt.active}>{opt.size} {!opt.active ? '(หมด)' : ''}</option>
                                                         ))}
                                                     </select>
-                                                    <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                                    <ChevronDown size={14} className={`absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${errors[`shirtSize_${index}`] ? 'text-red-400' : 'text-slate-400'}`} />
                                                 </div>
                                             )}
                                             {showCard && (
                                                 <div className={`${showShirt ? 'w-1/2' : 'w-full'}`}>
                                                     {!req.image ? (
-                                                        <label className="flex items-center justify-center w-full h-[42px] border border-slate-200 border-dashed rounded-lg cursor-pointer bg-slate-50 hover:bg-white hover:border-[#3e87c6] transition-all gap-2 group">
-                                                            <Camera size={16} className="text-slate-400 group-hover:text-[#3e87c6]" />
-                                                            <span className="text-xs text-slate-500 group-hover:text-slate-700">รูปถ่าย</span>
-                                                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(index, e.target.files[0])} />
+                                                        <label className={`flex items-center justify-center w-full h-[42px] border border-dashed rounded-lg cursor-pointer transition-all gap-2 group ${errors[`image_${index}`] ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-slate-50 hover:bg-white hover:border-[#3e87c6]'}`}>
+                                                            <Camera size={16} className={`${errors[`image_${index}`] ? 'text-red-400' : 'text-slate-400 group-hover:text-[#3e87c6]'}`} />
+                                                            <span className={`text-xs ${errors[`image_${index}`] ? 'text-red-500 font-medium' : 'text-slate-500 group-hover:text-slate-700'}`}>รูปถ่าย *</span>
+                                                            <input
+                                                                type="file"
+                                                                accept="image/*"
+                                                                className="hidden"
+                                                                onChange={(e) => {
+                                                                    handleImageUpload(index, e.target.files[0]);
+                                                                    clearError(`image_${index}`);
+                                                                }}
+                                                            />
                                                         </label>
                                                     ) : (
                                                         <div className="relative w-full h-[42px] bg-slate-100 rounded-lg overflow-hidden border border-slate-200 group">
