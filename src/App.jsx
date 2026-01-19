@@ -280,7 +280,7 @@ export default function App() {
                     )}
                     <div>
                         <h1 className="text-xl font-bold tracking-tight text-slate-900 leading-tight">
-                            {isReviewing ? "ตรวจสอบข้อมูล" : "เบิกชุดและบัตร"}
+                            {isReviewing ? "ตรวจสอบข้อมูล" : "แจ้งเบิกบัตรและชุดพนักงาน"}
                         </h1>
                         <p className="text-slate-500 text-xs mt-0.5 font-normal">
                             {isReviewing ? `${requesterCount} รายการ` : "กรอกข้อมูลให้ครบถ้วน"}
@@ -426,9 +426,9 @@ export default function App() {
                                         <div className="grid grid-cols-2 gap-2">
                                             <div className="relative">
                                                 <select className="w-full px-2.5 py-2.5 bg-slate-50 rounded-lg text-slate-900 text-sm outline-none appearance-none focus:ring-1 focus:ring-[#3e87c6] transition-all" value={req.area} onChange={(e) => { updateRequester(index, "area", e.target.value); updateRequester(index, "shirtSize", ""); }}>
-                                                    <option value="1">เซลล์ฟลอร์</option>
+                                                    <option value="1">เซลฟลอร์</option>
                                                     <option value="2">มอลล์</option>
-                                                    <option value="3">ฟู๊ดคอร์ด</option>
+                                                    <option value="3">ฟู้ดคอร์ท</option>
                                                     <option value="4">สวน/ลานจอด</option>
                                                 </select>
                                                 <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
